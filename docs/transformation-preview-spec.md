@@ -1,17 +1,29 @@
-# Arena Fitness — Transformation Preview
+# Arena Fitness — Transformation module
 
-A trainer-operated sales tool for gym consultations. A coach photographs a prospective
-client, configures their program variables, and the app shows AI-generated projections of
-what the client will look like over time **if they stick to the plan — versus if they fall
-off**. It is the visual "proof" step that complements the Arena Fitness **Game Plan
-Builder** sales flow and shares its branding.
+A staff-only tool inside the **Arena Fitness app** admin section with two jobs:
 
-- **Lovable project:** `407e4944-8577-479d-9ef9-7fffe14273bd`
-  - Editor: https://lovable.dev/projects/407e4944-8577-479d-9ef9-7fffe14273bd
-  - Preview: https://id-preview--407e4944-8577-479d-9ef9-7fffe14273bd.lovable.app
-- **Backend:** Lovable Cloud (Supabase — Postgres, Auth, private Storage, Edge Functions)
-- **AI:** Lovable AI gateway — vision model for photo verification, image editing model for
-  transformation renders
+1. **Sales consult** — a trainer or salesperson photographs a prospect, configures their
+   program variables, and shows AI-generated projections of what they will look like over
+   time **if they stick to the plan — versus if they fall off**. It is the visual "proof"
+   step that complements the Arena Fitness **Game Plan Builder** sales flow.
+2. **On-track coaching** — once the person is a member, their real check-ins (weight,
+   body-fat, progress photos) are compared against the projection curve so coaches can see
+   whether they are on track to their goal.
+
+- **Lovable project:** `arenafitness` (`bce91d22-6c67-4f36-9376-a3bffbd062d3`)
+  - Editor: https://lovable.dev/projects/bce91d22-6c67-4f36-9376-a3bffbd062d3
+  - Live: https://arenafitness.lovable.app
+- **Where:** V2 admin — new **Transform** tab on `/v2/admin`, a **TRANSFORMATION** section on
+  `/v2/admin/members/:id`, an on-track card on the coach view, and routes under
+  `/v2/admin/transform/*`. Code lives in `src/v2/transform/`.
+- **Backend:** the app's existing Supabase (Postgres, Auth, private Storage, Edge
+  Functions). Google Sheets / webhook data flows are untouched.
+- **AI:** vision model for photo verification; image-editing model for transformation
+  renders (via the project's configured AI provider — Gemini image editing if no gateway is
+  set up).
+
+> History: a standalone prototype (`407e4944-…`) was started in a free Lovable workspace and
+> ran out of credits; the module was then rebuilt inside `arenafitness` instead.
 
 ---
 
@@ -127,22 +139,51 @@ report is stored on the photo record.
   indicator in the UI.
 - 7 timepoints × 2 paths = 14 renders per client, generated progressively.
 
-## 8. Data model
+## 8. On-track status (coaching half)
+
+- **Subjects can be prospects or members.** `transformation_subjects` carries a nullable
+  `member_id`; a consult can run before the person has an account, and "Link to member"
+  attaches it later. From then on the on-track logic reads that member's real data.
+- **Check-ins** (`/v2/admin/transform/:subjectId/checkin`): dated weight + body-fat entries
+  written to the existing `body_metrics` table (source `transformation`) when linked to a
+  member, otherwise to `transformation_checkins`; optional progress photo that also passes
+  through `verify-photo`. Trend maths comes from the existing `v_body_metrics_trend` view.
+- **Status engine** (`src/v2/transform/onTrack.ts`, unit-tested):
+  weeks elapsed since commitment → expected weight / body-fat at that week from the ON PLAN
+  series → actual from the latest 7-day averages. Score = achieved change ÷ expected change.
+
+  | Status | Score |
+  |---|---|
+  | AHEAD | ≥ 1.15 |
+  | ON TRACK | 0.8 – 1.15 |
+  | BEHIND | 0.4 – 0.8 |
+  | OFF PLAN | < 0.4 |
+  | NO CHECK-IN | last data point older than 14 days |
+
+  Also: `% to goal` (goal = ON PLAN value at program end week) and a one-line coach nudge.
+- **On-track card** (member admin page, coach view, Transform list chips): status chip, big
+  % to goal, projected-vs-actual mini chart (real trend over the ON PLAN / FELL OFF curves),
+  and a **projected vs actual** photo pair — the week-N render beside the nearest real
+  check-in photo.
+
+## 9. Data model
 
 ```
-clients        (coach_id, name, age, sex, height_cm, weight_lb, bf_band, goal,
-                program_length_weeks, consent_at)
-client_photos  (client_id, angle, storage_path, verification jsonb, status)
-plans          (client_id, variables jsonb)
-projections    (plan_id, week, path, stats jsonb)
-renders        (plan_id, week, path, storage_path, status, error)
-commitments    (client_id, plan_id, committed_at, notes)
+transformation_subjects     (org_id, member_id?, first_name, last_name, email, phone, age, sex,
+                             height_cm, weight_lb, bf_band, goal, program_length_weeks,
+                             consent_at, created_by)
+transformation_photos       (subject_id, angle, storage_path, status, verification jsonb, taken_on)
+transformation_plans        (subject_id, variables jsonb, created_by)
+transformation_renders      (plan_id, week, path, storage_path, status, error, model)
+transformation_commitments  (subject_id, plan_id, committed_at, committed_by, notes)
+transformation_checkins     (subject_id, measured_on, weight, body_fat_pct, photo_id?)
 ```
 
-RLS scopes every table to the owning coach account. Photos and renders live in **private**
-storage buckets, served by signed URLs only.
+RLS: staff/admin of the org (existing `has_role` / `user_location_roles` helpers) read and
+write; athletes have no access in this phase. Photos and renders live in the **private**
+`transformation-media` bucket, served by short-lived signed URLs only.
 
-## 9. Guardrails
+## 10. Guardrails
 
 - Fixed disclaimer on every projection view: *"Illustrative projection based on your
   inputs — not a guarantee of results."*
