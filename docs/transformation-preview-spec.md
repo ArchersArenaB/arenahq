@@ -190,3 +190,20 @@ write; athletes have no access in this phase. Photos and renders live in the **p
 - Staff auth only (email/password, auto-confirm); no public signup links in the consult
   flow — the app runs on a gym tablet.
 - Client consent is captured before any photo is taken and stored with a timestamp.
+
+## 11. Running cost: free tier by design
+
+- **AI:** direct Google Gemini API using a `GEMINI_API_KEY` created in Google AI Studio under
+  the gym's Google account (info@ / train@archersarena.com). Only free-tier-eligible Flash
+  models: a Flash vision model for `verify-photo`, the Flash **Image** model for
+  `generate-render`. Model ids are configurable via `GEMINI_VISION_MODEL` /
+  `GEMINI_IMAGE_MODEL`. The Lovable AI gateway is a fallback only when no Gemini key is set.
+- **Quota-aware queue:** one render at a time per subject; 429 / RESOURCE_EXHAUSTED sets the
+  render back to `queued` with `retry_after` and exponential backoff (never `failed`), with a
+  "Free-tier quota reached — resumes automatically" chip.
+- **Lean default render set:** weeks 6, 12, 24 × both paths (6 renders) via "Generate core
+  set"; weeks 18/36/48/60 on demand via "Generate more". The slider crossfades between the
+  renders that exist and greys out gaps.
+- **Storage:** photos compressed client-side (max 1280 px, JPEG ~0.82) before upload so the
+  existing Supabase free-tier storage suffices.
+- **Only unavoidable cost:** Lovable build credits while iterating on the app itself.
