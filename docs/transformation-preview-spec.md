@@ -255,3 +255,21 @@ Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set �
   with `{prompt, num_images: 1, aspect_ratio: "auto", output_format: "jpeg",
   input_images: [{type: "image_url", image_url: <10-min signed URL>}]}`; there is no
   `nano-banana-pro` path, and no balance endpoint (the UI cannot show remaining credits).
+
+### Photo capture hardening (commits `5d55fdc`, `7e8330f`, `f638f80`)
+
+- **In-app camera** (`CameraCapture.tsx`): full-screen getUserMedia view with a red silhouette
+  guide per angle, "Top of head here" / "Feet here" lines, tips bar, Front/Side/Back pills,
+  flip camera, 3-second self-timer, Use photo / Retake; native `capture` input as fallback.
+- **Angle-aware verification**: front → square to camera, side → true profile, back → facing
+  away; a stray sliver of hair at the edge no longer fails "full body". `detected_angle`
+  auto-relabels a photo taken with the wrong pill selected (`relabelled_from` stored).
+- **Quota resilience**: verify-photo retries 6/12/20 s, falls back to
+  `gemini-flash-lite-latest`, leaves photos `pending` with a Re-check button; client spaces
+  checks 15 s apart.
+- **Auto clean-up** (`photoClean.ts`, `@imgly/background-removal`, ~25 MB model cached per
+  device): person cut-out, auto-crop to 1200×1600 with 8 % headroom, neutral studio
+  backdrop, auto-levels; before/after sheet (Use cleaned / Use original / Retake); original
+  kept in `original_path`, `cleaned` flag; edge-touch warning when head/feet were cropped.
+- Exercises list: grid items get `min-width: 0` so rows fit phone screens; sort control on
+  its own line.
