@@ -219,3 +219,16 @@ write; athletes have no access in this phase. Photos and renders live in the **p
 Edge functions: `verify-photo`, `generate-render`, `transform-status`, shared client in
 `supabase/functions/_shared/gemini.ts`. Build state: commit `8caaae3` in the arenafitness
 Lovable project; typecheck, `vite build`, and vitest (17/17) passing.
+
+### Render provider order (commit `bba397f`)
+
+1. **Higgsfield** (Ultra plan credits) when `HIGGSFIELD_API_KEY_ID` + `HIGGSFIELD_API_KEY_SECRET`
+   are set. Optional `HIGGSFIELD_IMAGE_MODEL` (default `nano-banana-pro`, auto-falls back to
+   `nano-banana`; `flux-pro/kontext/max/text-to-image` also works). Source photo is passed as a
+   10-minute signed URL; long jobs finish via the `render-poll` edge function.
+2. **Gemini** (`GEMINI_API_KEY`) — free tier for verification; image renders only if Google's
+   image model has a free API tier for the key (paid-only reported since mid-2026).
+3. Lovable AI gateway — last resort, paid.
+
+`verify-photo` always uses Gemini (`GEMINI_API_KEY` is required in every setup). Cost check:
+Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set ≈ 12 credits.
