@@ -207,3 +207,15 @@ write; athletes have no access in this phase. Photos and renders live in the **p
 - **Storage:** photos compressed client-side (max 1280 px, JPEG ~0.82) before upload so the
   existing Supabase free-tier storage suffices.
 - **Only unavoidable cost:** Lovable build credits while iterating on the app itself.
+
+### Secrets (Lovable project → Settings → Secrets)
+
+| Secret | Required | Default / notes |
+|---|---|---|
+| `GEMINI_API_KEY` | yes | From Google AI Studio under info@ / train@archersarena.com |
+| `GEMINI_VISION_MODEL` | no | `gemini-flash-latest` (photo verification) |
+| `GEMINI_IMAGE_MODEL` | no | `gemini-flash-image-latest` (renders; currently Gemini 3.1 Flash Image) |
+
+Edge functions: `verify-photo`, `generate-render`, `transform-status`, shared client in
+`supabase/functions/_shared/gemini.ts`. Build state: commit `8caaae3` in the arenafitness
+Lovable project; typecheck, `vite build`, and vitest (17/17) passing.
