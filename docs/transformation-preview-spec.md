@@ -232,3 +232,17 @@ Lovable project; typecheck, `vite build`, and vitest (17/17) passing.
 
 `verify-photo` always uses Gemini (`GEMINI_API_KEY` is required in every setup). Cost check:
 Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set ≈ 12 credits.
+
+### Free + Higgsfield hybrid (commit `aac9abc`)
+
+- `src/v2/transform/BodyMorph.tsx`: free, offline SVG body illustration driven by the engine
+  (body-fat → torso/waist/hip/limb width and softness; lean mass → shoulders/chest/arms/quads;
+  waist estimate; weight; sex; height), 250 ms transitions, dashed week-0 ghost outline and a
+  delta caption. Shown for every slider week; a Higgsfield photo edit replaces it only for weeks
+  with a ready render ("AI photo edit" vs "Illustration" badge). Compare toggle shows both paths.
+- Defaults: `KEY_RENDER_WEEKS = [12]` (week 12 on-plan + fell-off = 2 renders ≈ 4 credits);
+  weeks 6/18/24/36/48/60 on demand via "Add week N" / "Add all" with cost labels and the live
+  Higgsfield balance. `CREDITS_PER_RENDER = 2`, `creditsFor()` helper, unit-tested.
+- Photo upload UX fix (commit `f92e535`): consent checkbox row inside PHOTOS, buttons never
+  silently disabled, Take photo / Choose from gallery inputs, compressing → uploading →
+  checking progress line.
