@@ -31,9 +31,9 @@ A staff-only tool inside the **Arena Fitness app** admin section with two jobs:
 
 The Game Plan Builder walks a prospect through beliefs → plan → pricing. Transformation
 Preview slots in as the emotional close: after the plan variables are agreed, the coach
-scrubs the time slider and shows the prospect *themselves* at week 12 on the plan, then
-flips to the "fell off" path. The reveal screen ends in a red **LOCK IN THE PLAN** CTA that
-records commitment.
+steps through weeks 8 → 20 and shows the prospect *themselves* sticking to the plan. There
+is deliberately **no "fell off" path**: the tool only ever shows what we want the client to
+do. The reveal screen ends in a red **LOCK IN THE PLAN** CTA that records commitment.
 
 Program lengths mirror the real programs (6- and 8-week blocks, auto-renew assumption for
 longer horizons).
@@ -65,14 +65,12 @@ Type: **Barlow Condensed** 600–800 UPPERCASE for display/headings/numbers/butt
    frame, arms slightly out, even lighting, progress-photo clothing).
 3. **Photo verification — blocking.** See §6.
 4. **Plan variables** — see §4. Live chart of projected weight + body-fat over weeks.
-5. **Generate projections** — renders at weeks **6, 12, 18, 24, 36, 48, 60** on two paths
-   (**ON PLAN**, **FELL OFF**). Weeks 6 & 12 render first so the consult starts fast; the
-   rest queue in the background.
-6. **The Reveal** — before/after viewer with a 0–60-week time slider that snaps to rendered
-   timepoints and **crossfade-blends between adjacent renders** for in-between weeks. Path
-   tabs swap ON PLAN / FELL OFF; compare mode shows both at the same week. Stat tiles
-   (weight, BF%, lean mass, waist estimate) update with the slider. Sticky dock: "THIS IS
-   YOU AT WEEK {n}" + **LOCK IN THE PLAN**.
+5. **Generate projections** — renders at weeks **8, 12, 16, 20** on the plan (one button,
+   one path). Superseded history: the first cut rendered 6/12/18/24/36/48/60 on ON PLAN and
+   FELL OFF; both the long horizon and the fell-off path were dropped (see the changelog).
+6. **The Reveal** — real photo left, projection right, W8/W12/W16/W20 chips. Stat tiles
+   (weight, BF%, lean mass, waist estimate) update with the selected week. Sticky dock:
+   "THIS IS YOU AT WEEK {n}" + **LOCK IN THE PLAN**.
 7. **Client list / history** — status chips (photo verified, renders ready, committed);
    any reveal can be reopened.
 
@@ -92,7 +90,7 @@ Numeric:
 | Cardio | 0–5 sessions/week | |
 | Consistency | 50–100% slider | sessions actually attended |
 
-Toggles (drop-off modelling):
+Toggles (legacy slider engine only — not shown in the simplified UI):
 
 - Tracks food in an app
 - Weekly coach check-ins
@@ -109,7 +107,8 @@ for images and photo verification. Conservative heuristics:
   steps, and alcohol penalty.
 - Lean gain ~1–2 lb/month for novices, scaled by protein, effort, sleep; tapering with
   training age.
-- Drop-off paths decay progress back toward baseline (fat regain faster than muscle loss).
+- Only the ON PLAN path is projected. The legacy "stops training after week N" toggle still
+  decays progress back toward baseline (fat regain faster than muscle loss) for that case.
 - Output per timepoint: weight, body-fat %, lean mass, waist estimate → drives both the
   stat tiles and the image-edit prompt for that week.
 
@@ -137,7 +136,7 @@ report is stored on the photo record.
   for that week/path.
 - Queue via edge function: `queued → processing → done | failed` with retry; progress
   indicator in the UI.
-- 7 timepoints × 2 paths = 14 renders per client, generated progressively.
+- 4 timepoints × 1 path = 4 renders per client (weeks 8, 12, 16, 20 on plan).
 
 ## 8. On-track status (coaching half)
 
@@ -162,7 +161,7 @@ report is stored on the photo record.
 
   Also: `% to goal` (goal = ON PLAN value at program end week) and a one-line coach nudge.
 - **On-track card** (member admin page, coach view, Transform list chips): status chip, big
-  % to goal, projected-vs-actual mini chart (real trend over the ON PLAN / FELL OFF curves),
+  % to goal, projected-vs-actual mini chart (real trend over the ON PLAN curve),
   and a **projected vs actual** photo pair — the week-N render beside the nearest real
   check-in photo.
 
@@ -201,9 +200,8 @@ write; athletes have no access in this phase. Photos and renders live in the **p
 - **Quota-aware queue:** one render at a time per subject; 429 / RESOURCE_EXHAUSTED sets the
   render back to `queued` with `retry_after` and exponential backoff (never `failed`), with a
   "Free-tier quota reached — resumes automatically" chip.
-- **Lean default render set:** weeks 6, 12, 24 × both paths (6 renders) via "Generate core
-  set"; weeks 18/36/48/60 on demand via "Generate more". The slider crossfades between the
-  renders that exist and greys out gaps.
+- **Render set:** weeks 8, 12, 16, 20 on plan (4 renders) via one "Generate photos" button.
+  Weeks without a render show the free SVG illustration.
 - **Storage:** photos compressed client-side (max 1280 px, JPEG ~0.82) before upload so the
   existing Supabase free-tier storage suffices.
 - **Only unavoidable cost:** Lovable build credits while iterating on the app itself.
@@ -240,9 +238,9 @@ Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set �
   waist estimate; weight; sex; height), 250 ms transitions, dashed week-0 ghost outline and a
   delta caption. Shown for every slider week; a Higgsfield photo edit replaces it only for weeks
   with a ready render ("AI photo edit" vs "Illustration" badge). Compare toggle shows both paths.
-- Defaults: `KEY_RENDER_WEEKS = [12]` (week 12 on-plan + fell-off = 2 renders ≈ 4 credits);
-  weeks 6/18/24/36/48/60 on demand via "Add week N" / "Add all" with cost labels and the live
-  Higgsfield balance. `CREDITS_PER_RENDER = 2`, `creditsFor()` helper, unit-tested.
+- Defaults at the time: `KEY_RENDER_WEEKS = [12]` (week 12 on-plan + fell-off = 2 renders ≈
+  4 credits); other weeks on demand. `CREDITS_PER_RENDER = 2`, `creditsFor()` helper,
+  unit-tested. Superseded by the simplified plan below.
 - Photo upload UX fix (commit `f92e535`): consent checkbox row inside PHOTOS, buttons never
   silently disabled, Take photo / Choose from gallery inputs, compressing → uploading →
   checking progress line.
@@ -283,3 +281,28 @@ Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set �
 - Clean-up can never block an upload: 20 s model / 25 s segmentation timeouts, Skip clean-up
   button, fail-fast on a blocked asset host, model preloaded on page mount, `device: "cpu"`.
   Asset host: `https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/`.
+
+### Simplified plan and no fell-off path (2026-09-05)
+
+- **One plan, four weeks.** Sliders and toggles are gone from the UI. `PLAN_PRESET` is
+  1 lb/week for cut and recomp (recomp adds 0.15 lb lean/week) and 0.5 lb lean/week for build,
+  over `PRESET_WEEKS = 20`, with hard floors of 10 % body fat (men) / 18 % (women) and 85 % of
+  start weight. `RENDER_WEEKS = KEY_RENDER_WEEKS = [8, 12, 16, 20]`; one "Generate photos
+  (weeks 8–20)" button.
+- **Fell-off removed everywhere.** Owner's call: "there's no need to show them what we don't
+  want them to do." `Projection` is `{ onPlan }` only, `PathKey = "on_plan"`, the On plan /
+  Fell off / Compare pills and the "Also generate fell-off" button are gone, and
+  `usePlanRenders` reads only `path = 'on_plan'`. The two queued `fell_off` rows were deleted.
+  Ready-to-paste files live in `patches/arenafitness/remove-fell-off/` in this repo (apply via
+  Lovable Dev Mode — no credits).
+- **Redirect glitch fixed** (commit `3351f58` in the Lovable project): `useViewer` and
+  `useIsOrgAdmin` reported `isLoading = false` while the user id was still unknown, so the
+  subject page bounced to the feed. Both now treat "no user yet" as loading.
+- **Render cost, measured on Higgsfield Ultra credits** (front photo, week-12 prompt):
+  GPT Image 2 low 0.5 · Nano Banana / Nano Banana 2 lite / Seedream 1 · Nano Banana 2 /
+  Flux Kontext 1.5 · Nano Banana Pro 2. Recommendation: Nano Banana → 4 credits per client.
+- **Open blocker.** The app calls the Higgsfield *Cloud API*, whose developer wallet is
+  separate from the Ultra subscription and currently empty (`not_enough_credits`). Options:
+  top up at cloud.higgsfield.ai and set `HIGGSFIELD_IMAGE_MODEL=nano-banana`; enable billing on
+  the Gemini key; or have Claude generate renders on Ultra credits and write them to Supabase.
+
