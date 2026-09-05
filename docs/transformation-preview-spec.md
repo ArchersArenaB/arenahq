@@ -246,3 +246,12 @@ Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set �
 - Photo upload UX fix (commit `f92e535`): consent checkbox row inside PHOTOS, buttons never
   silently disabled, Take photo / Choose from gallery inputs, compressing → uploading →
   checking progress line.
+
+### Higgsfield live (commit `ef7a4e5`)
+
+- Secrets installed: `HIGGSFIELD_API_KEY_ID`, `HIGGSFIELD_API_KEY_SECRET` (auth verified: status
+  probe returns 404, not 401/403). Also installed: `GEMINI_API_KEY` (verification, free tier).
+- Endpoint verified against Higgsfield's live OpenAPI spec: `POST https://api.higgsfield.ai/nano-banana`
+  with `{prompt, num_images: 1, aspect_ratio: "auto", output_format: "jpeg",
+  input_images: [{type: "image_url", image_url: <10-min signed URL>}]}`; there is no
+  `nano-banana-pro` path, and no balance endpoint (the UI cannot show remaining credits).
