@@ -273,3 +273,13 @@ Nano Banana Pro edit ≈ 2 Higgsfield credits per render → 6-render core set �
   kept in `original_path`, `cleaned` flag; edge-touch warning when head/feet were cropped.
 - Exercises list: grid items get `min-width: 0` so rows fit phone screens; sort control on
   its own line.
+
+### Verification is advisory (commit `876f0f8`)
+
+- Hard blocks only: no single person, head/feet genuinely cut off, severe blur. Everything else
+  (lighting, background, filters, obstruction, angle) is an amber warning on a verified photo.
+- **Use anyway** override on blocked photos via the staff-only `override-photo` edge function
+  (`verification.override = true`); RLS unchanged.
+- Clean-up can never block an upload: 20 s model / 25 s segmentation timeouts, Skip clean-up
+  button, fail-fast on a blocked asset host, model preloaded on page mount, `device: "cpu"`.
+  Asset host: `https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/`.
